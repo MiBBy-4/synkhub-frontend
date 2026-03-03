@@ -1,0 +1,29 @@
+name: synkhub-frontend-development
+services:
+  synkhub-frontend-development-vite:
+    container_name: synkhub-frontend-development-vite
+    image: synkhub-frontend-development-vite:latest
+    restart: always
+    build:
+      context: ../../.
+      dockerfile: docker/Dockerfile
+      target: synkhub-frontend-development-image
+    entrypoint: /app/docker/development/entrypoint.sh
+    command: yarn dev --host
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../../.:/app
+      - synkhub-frontend-development-node-modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - synkhub-api-development-network
+
+networks:
+  synkhub-api-development-network:
+    name: synkhub-api-development-network
+    external: true
+
+volumes:
+  synkhub-frontend-development-node-modules:
