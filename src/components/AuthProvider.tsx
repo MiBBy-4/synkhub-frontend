@@ -51,17 +51,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [token]);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
-    const authenticatedUser = await authApi.login(credentials);
-    setStoredToken(authenticatedUser.token);
-    setToken(authenticatedUser.token);
-    setUser({ id: authenticatedUser.id, email: authenticatedUser.email });
+    const { token: newToken, ...userData } = await authApi.login(credentials);
+    setStoredToken(newToken);
+    setToken(newToken);
+    setUser(userData);
   }, []);
 
   const signup = useCallback(async (credentials: SignupCredentials) => {
-    const authenticatedUser = await authApi.signup(credentials);
-    setStoredToken(authenticatedUser.token);
-    setToken(authenticatedUser.token);
-    setUser({ id: authenticatedUser.id, email: authenticatedUser.email });
+    const { token: newToken, ...userData } = await authApi.signup(credentials);
+    setStoredToken(newToken);
+    setToken(newToken);
+    setUser(userData);
   }, []);
 
   const logout = useCallback(() => {
@@ -70,8 +70,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const userData = await authApi.getMe();
+    setUser(userData);
+  }, []);
+
   return (
-    <AuthContext value={{ user, token, isLoading, login, signup, logout }}>
+    <AuthContext
+      value={{ user, token, isLoading, login, signup, logout, refreshUser }}
+    >
       {children}
     </AuthContext>
   );

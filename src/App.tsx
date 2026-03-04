@@ -4,7 +4,9 @@ import { GuestRoute } from "./components/GuestRoute";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RootLayout } from "./layouts/RootLayout";
 import { Dashboard } from "./pages/Dashboard";
+import { GitHubCallbackPage } from "./pages/GitHubCallbackPage";
 import { LoginPage } from "./pages/LoginPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { SignupPage } from "./pages/SignupPage";
 
 function App() {
@@ -35,6 +37,24 @@ function App() {
                 <RootLayout>
                   <Dashboard />
                 </RootLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <SettingsPage />
+                </RootLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/github/callback"
+            element={
+              <ProtectedRoute>
+                <GitHubCallbackPage />
               </ProtectedRoute>
             }
           />
