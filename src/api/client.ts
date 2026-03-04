@@ -40,11 +40,22 @@ async function request<T>(
     throw new ApiError(response.status, data.errors);
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   const json = (await response.json()) as ApiSuccessResponse<T>;
   return json.data;
 }
 
-export function get<T>(path: string): Promise<T> {
+export function get<T>(
+  path: string,
+  params?: Record<string, string>,
+): Promise<T> {
+  if (params) {
+    const query = new URLSearchParams(params).toString();
+    if (query) return request<T>("GET", `${path}?${query}`);
+  }
   return request<T>("GET", path);
 }
 
@@ -54,4 +65,8 @@ export function post<T>(path: string, body: unknown): Promise<T> {
 
 export function del<T>(path: string): Promise<T> {
   return request<T>("DELETE", path);
+}
+
+export function patch<T>(path: string, body?: unknown): Promise<T> {
+  return request<T>("PATCH", path, body);
 }

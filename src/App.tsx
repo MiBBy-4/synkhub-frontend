@@ -1,5 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
+import { NotificationsProvider } from "./components/NotificationsProvider";
+import { ToastProvider } from "./components/ToastProvider";
 import { GuestRoute } from "./components/GuestRoute";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RootLayout } from "./layouts/RootLayout";
@@ -13,52 +15,56 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <GuestRoute>
-                <LoginPage />
-              </GuestRoute>
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <GuestRoute>
-                <SignupPage />
-              </GuestRoute>
-            }
-          />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <RootLayout>
-                  <Dashboard />
-                </RootLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <RootLayout>
-                  <SettingsPage />
-                </RootLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/github/callback"
-            element={
-              <ProtectedRoute>
-                <GitHubCallbackPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+        <ToastProvider>
+          <NotificationsProvider>
+            <Routes>
+              <Route
+                path="/login"
+                element={
+                  <GuestRoute>
+                    <LoginPage />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/signup"
+                element={
+                  <GuestRoute>
+                    <SignupPage />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <RootLayout>
+                      <Dashboard />
+                    </RootLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <RootLayout>
+                      <SettingsPage />
+                    </RootLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/github/callback"
+                element={
+                  <ProtectedRoute>
+                    <GitHubCallbackPage />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </NotificationsProvider>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );
