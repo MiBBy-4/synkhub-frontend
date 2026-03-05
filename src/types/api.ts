@@ -18,6 +18,20 @@ export interface ApiErrorResponse {
   errors: string[];
 }
 
+export interface PaginationMeta {
+  current_page: number;
+  per_page: number;
+  next_page: number | null;
+  previous_page: number | null;
+  total_pages?: number;
+  total_count?: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T;
+  meta: { pagination: PaginationMeta };
+}
+
 export interface GitHubRepository {
   id: number;
   full_name: string;
@@ -68,4 +82,10 @@ export interface GitHubCommit {
   repo_full_name: string;
   branch: string;
   pusher: string;
+}
+
+export interface UserPreferences {
+  notification_event_types: string[];
+  email_digest_enabled: boolean;
+  email_digest_frequency: string;
 }

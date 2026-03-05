@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import * as githubApi from "../api/github";
 import { useAuth } from "../hooks/useAuth";
@@ -22,7 +22,10 @@ export function NotificationsProvider({
   const [notifications, setNotifications] = useState<GitHubNotification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<NotificationFilters>({});
+  const [filters, setFiltersRaw] = useState<NotificationFilters>({});
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const filtersRef = useRef(filters);
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read).length,
@@ -34,18 +37,29 @@ export function NotificationsProvider({
       setNotifications([]);
       setError(null);
       setIsLoading(false);
-      setFilters({});
+      setFiltersRaw({});
+      setPage(1);
+      setHasMore(false);
     }
   }, [githubConnected]);
 
-  const fetchNotifications = useCallback(
-    async (currentFilters?: NotificationFilters) => {
+  const setFilters = useCallback((newFilters: NotificationFilters) => {
+    setFiltersRaw(newFilters);
+    filtersRef.current = newFilters;
+    setPage(1);
+    setNotifications([]);
+  }, []);
+
+  const fetchPage = useCallback(
+    async (currentFilters: NotificationFilters, pageNum: number) => {
       try {
-        const data = await githubApi.getNotifications(currentFilters);
-        setNotifications(data);
-        setError(null);
+        const response = await githubApi.getNotifications(
+          currentFilters,
+          pageNum,
+        );
+        return response;
       } catch {
-        setError("Failed to load notifications.");
+        throw new Error("Failed to load notifications.");
       }
     },
     [],
@@ -59,9 +73,11 @@ export function NotificationsProvider({
     (async () => {
       setIsLoading(true);
       try {
-        const data = await githubApi.getNotifications(filters);
+        const response = await fetchPage(filters, 1);
         if (!cancelled) {
-          setNotifications(data);
+          setNotifications(response.data);
+          setHasMore(response.meta.pagination.next_page !== null);
+          setPage(1);
           setError(null);
         }
       } catch {
@@ -78,14 +94,42 @@ export function NotificationsProvider({
     return () => {
       cancelled = true;
     };
-  }, [githubConnected, filters]);
+  }, [githubConnected, filters, fetchPage]);
 
   useEffect(() => {
     if (!githubConnected) return;
 
-    const id = setInterval(() => fetchNotifications(filters), POLL_INTERVAL);
+    const id = setInterval(async () => {
+      try {
+        const response = await fetchPage(filtersRef.current, 1);
+        setNotifications((prev) => {
+          const existingIds = new Set(prev.map((n) => n.id));
+          const newItems = response.data.filter((n) => !existingIds.has(n.id));
+          if (newItems.length > 0) {
+            return [...newItems, ...prev];
+          }
+          return prev.map((n) => response.data.find((r) => r.id === n.id) ?? n);
+        });
+        setHasMore(response.meta.pagination.next_page !== null);
+        setError(null);
+      } catch {
+        /* keep existing data on poll failure */
+      }
+    }, POLL_INTERVAL);
     return () => clearInterval(id);
-  }, [githubConnected, fetchNotifications, filters]);
+  }, [githubConnected, fetchPage]);
+
+  const loadMore = useCallback(async () => {
+    const nextPage = page + 1;
+    try {
+      const response = await fetchPage(filtersRef.current, nextPage);
+      setNotifications((prev) => [...prev, ...response.data]);
+      setHasMore(response.meta.pagination.next_page !== null);
+      setPage(nextPage);
+    } catch {
+      addToast("error", "Failed to load more notifications.");
+    }
+  }, [page, fetchPage, addToast]);
 
   const markRead = useCallback(
     async (notificationId: number) => {
@@ -125,8 +169,16 @@ export function NotificationsProvider({
   }, [addToast]);
 
   const refresh = useCallback(async () => {
-    await fetchNotifications(filters);
-  }, [fetchNotifications, filters]);
+    try {
+      const response = await fetchPage(filtersRef.current, 1);
+      setNotifications(response.data);
+      setHasMore(response.meta.pagination.next_page !== null);
+      setPage(1);
+      setError(null);
+    } catch {
+      setError("Failed to load notifications.");
+    }
+  }, [fetchPage]);
 
   const value = useMemo(
     () => ({
@@ -139,6 +191,8 @@ export function NotificationsProvider({
       markRead,
       markAllRead,
       refresh,
+      hasMore,
+      loadMore,
     }),
     [
       notifications,
@@ -146,9 +200,12 @@ export function NotificationsProvider({
       isLoading,
       error,
       filters,
+      setFilters,
       markRead,
       markAllRead,
       refresh,
+      hasMore,
+      loadMore,
     ],
   );
 

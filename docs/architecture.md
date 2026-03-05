@@ -16,7 +16,7 @@
 | `src/pages/LoginPage.tsx` | `/login` | GuestRoute | none |
 | `src/pages/SignupPage.tsx` | `/signup` | GuestRoute | none |
 | `src/pages/Dashboard.tsx` | `/` | ProtectedRoute | RootLayout |
-| `src/pages/SettingsPage.tsx` | `/settings` | ProtectedRoute | RootLayout |
+| `src/pages/SettingsPage.tsx` | `/settings` | ProtectedRoute | RootLayout (includes notification preferences) |
 | `src/pages/GitHubCallbackPage.tsx` | `/github/callback` | ProtectedRoute | none |
 
 ### Widgets (dashboard)
@@ -24,10 +24,10 @@
 | File | Data Source | Key Behavior |
 |------|-------------|--------------|
 | `src/widgets/WidgetGrid.tsx` | children | Responsive grid: 1/2/3 cols |
-| `src/widgets/NotificationsWidget.tsx` | `useNotifications()` | List with mark-read, filtering, max 10 visible |
-| `src/widgets/SubscriptionsWidget.tsx` | `githubApi.getSubscriptions()` | List with unsubscribe action, max 10, link to settings |
+| `src/widgets/NotificationsWidget.tsx` | `useNotifications()` | List with mark-read, filtering, load more pagination |
+| `src/widgets/SubscriptionsWidget.tsx` | `githubApi.getSubscriptions()` | List with unsubscribe action, load more pagination, link to settings |
 | `src/widgets/ActivitySummaryWidget.tsx` | `useNotifications()` | Event type breakdown bar chart |
-| `src/widgets/RecentCommitsWidget.tsx` | `githubApi.getCommits()` | Recent commits list, max 8, spans 2 cols |
+| `src/widgets/RecentCommitsWidget.tsx` | `githubApi.getCommits()` | Recent commits list, load more pagination, spans 2 cols |
 | `src/widgets/PrStatusWidget.tsx` | `useNotifications()` | PR status from pull_request events, colored badges |
 
 ### Components
@@ -49,7 +49,7 @@
 | File | Provides |
 |------|----------|
 | `src/hooks/useAuth.ts` | `user`, `token`, `isLoading`, `login()`, `signup()`, `logout()`, `refreshUser()` |
-| `src/hooks/useNotifications.ts` | `notifications[]`, `unreadCount`, `isLoading`, `error`, `filters`, `setFilters()`, `markRead()`, `markAllRead()`, `refresh()` |
+| `src/hooks/useNotifications.ts` | `notifications[]`, `unreadCount`, `isLoading`, `error`, `filters`, `setFilters()`, `markRead()`, `markAllRead()`, `refresh()`, `hasMore`, `loadMore()` |
 | `src/hooks/useToast.ts` | `addToast(type, message)` |
 
 ### API Layer
@@ -58,13 +58,13 @@
 |------|-----------|
 | `src/api/client.ts` | Generic `get/post/patch/del` with Bearer auth and query params, `ApiError` class |
 | `src/api/auth.ts` | `login`, `signup`, `getMe` |
-| `src/api/github.ts` | OAuth flow, repositories, subscriptions CRUD, notifications CRUD (with filters), stats, commits |
+| `src/api/github.ts` | OAuth flow, repositories, subscriptions CRUD, notifications CRUD (with filters), stats, commits, user preferences |
 
 ### Types
 
 | File | Exports |
 |------|---------|
-| `src/types/api.ts` | `User`, `AuthenticatedUser`, `GitHubRepository`, `GitHubSubscription`, `GitHubNotification`, `NotificationFilters`, `GitHubStats`, `GitHubCommit`, API response wrappers |
+| `src/types/api.ts` | `User`, `AuthenticatedUser`, `GitHubRepository`, `GitHubSubscription`, `GitHubNotification`, `NotificationFilters`, `GitHubStats`, `GitHubCommit`, `PaginationMeta`, `PaginatedResponse`, `UserPreferences`, API response wrappers |
 | `src/types/auth.ts` | `LoginCredentials`, `SignupCredentials` |
 | `src/types/toast.ts` | `ToastType`, `Toast` |
 

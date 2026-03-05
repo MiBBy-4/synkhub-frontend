@@ -1,16 +1,39 @@
 import {
+  Bell,
   BookMarked,
+  ChevronDown,
   Github,
   Loader2,
+  Save,
   Search,
   Settings,
   Unplug,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import * as githubApi from "../api/github";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
-import type { GitHubRepository, GitHubSubscription } from "../types/api";
+import type {
+  GitHubRepository,
+  GitHubSubscription,
+  UserPreferences,
+} from "../types/api";
+import { labelFor } from "../utils/eventLabels";
+
+const SUPPORTED_EVENTS = [
+  "push",
+  "pull_request",
+  "pull_request_review",
+  "pull_request_review_comment",
+  "issues",
+  "issue_comment",
+  "check_run",
+  "check_suite",
+  "create",
+  "delete",
+  "release",
+  "workflow_run",
+];
 
 export function SettingsPage() {
   const { user, refreshUser } = useAuth();
@@ -27,6 +50,13 @@ export function SettingsPage() {
   );
   const [subsError, setSubsError] = useState<string | null>(null);
   const [repoSearch, setRepoSearch] = useState("");
+  const [repoPage, setRepoPage] = useState(1);
+  const [hasMoreRepos, setHasMoreRepos] = useState(false);
+  const [loadingMoreRepos, setLoadingMoreRepos] = useState(false);
+
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [loadingPrefs, setLoadingPrefs] = useState(false);
+  const [savingPrefs, setSavingPrefs] = useState(false);
 
   const filteredRepos = useMemo(
     () =>
@@ -42,14 +72,42 @@ export function SettingsPage() {
     if (!user?.github_connected) return;
 
     setLoadingRepos(true);
-    Promise.all([githubApi.getRepositories(), githubApi.getSubscriptions()])
-      .then(([repoData, subData]) => {
-        setRepos(repoData);
-        setSubscriptions(subData);
+    Promise.all([githubApi.getRepositories(1), githubApi.getSubscriptions()])
+      .then(([repoResponse, subResponse]) => {
+        setRepos(repoResponse.data);
+        setHasMoreRepos(repoResponse.meta.pagination.next_page !== null);
+        setRepoPage(1);
+        setSubscriptions(subResponse.data);
       })
       .catch(() => setSubsError("Failed to load repositories."))
       .finally(() => setLoadingRepos(false));
   }, [user?.github_connected]);
+
+  useEffect(() => {
+    if (!user?.github_connected) return;
+
+    setLoadingPrefs(true);
+    githubApi
+      .getPreferences()
+      .then((data) => setPreferences(data))
+      .catch(() => addToast("error", "Failed to load preferences."))
+      .finally(() => setLoadingPrefs(false));
+  }, [user?.github_connected, addToast]);
+
+  const handleLoadMoreRepos = useCallback(async () => {
+    const nextPage = repoPage + 1;
+    setLoadingMoreRepos(true);
+    try {
+      const response = await githubApi.getRepositories(nextPage);
+      setRepos((prev) => [...prev, ...response.data]);
+      setHasMoreRepos(response.meta.pagination.next_page !== null);
+      setRepoPage(nextPage);
+    } catch {
+      /* keep existing data */
+    } finally {
+      setLoadingMoreRepos(false);
+    }
+  }, [repoPage]);
 
   const handleConnect = async () => {
     setError(null);
@@ -108,6 +166,29 @@ export function SettingsPage() {
         next.delete(repo.id);
         return next;
       });
+    }
+  };
+
+  const handleToggleEventType = (eventType: string) => {
+    if (!preferences) return;
+    const current = preferences.notification_event_types;
+    const updated = current.includes(eventType)
+      ? current.filter((t) => t !== eventType)
+      : [...current, eventType];
+    setPreferences({ ...preferences, notification_event_types: updated });
+  };
+
+  const handleSavePreferences = async () => {
+    if (!preferences) return;
+    setSavingPrefs(true);
+    try {
+      const updated = await githubApi.updatePreferences(preferences);
+      setPreferences(updated);
+      addToast("success", "Preferences saved.");
+    } catch {
+      addToast("error", "Failed to save preferences.");
+    } finally {
+      setSavingPrefs(false);
     }
   };
 
@@ -229,8 +310,115 @@ export function SettingsPage() {
                   );
                 })}
               </div>
+              {hasMoreRepos && (
+                <button
+                  onClick={handleLoadMoreRepos}
+                  disabled={loadingMoreRepos}
+                  className="mt-3 flex w-full items-center justify-center gap-1 text-xs text-text-secondary transition-colors hover:text-text-primary disabled:opacity-50"
+                >
+                  {loadingMoreRepos ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3" />
+                  )}
+                  Load more repositories
+                </button>
+              )}
             </>
           )}
+        </section>
+      )}
+
+      {user?.github_connected && (
+        <section className="mt-8">
+          <h3 className="mb-4 flex items-center gap-2 text-lg font-medium text-text-primary">
+            <Bell className="h-5 w-5 text-accent" />
+            Notification Preferences
+          </h3>
+
+          {loadingPrefs ? (
+            <div className="flex items-center gap-2 text-sm text-text-secondary">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading preferences…
+            </div>
+          ) : preferences ? (
+            <div className="rounded-xl border border-border bg-surface p-5">
+              <div className="mb-4">
+                <p className="mb-2 text-sm font-medium text-text-primary">
+                  Event types that generate notifications
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {SUPPORTED_EVENTS.map((eventType) => (
+                    <label
+                      key={eventType}
+                      className="flex items-center gap-2 text-sm text-text-secondary"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={preferences.notification_event_types.includes(
+                          eventType,
+                        )}
+                        onChange={() => handleToggleEventType(eventType)}
+                        className="rounded border-border accent-accent"
+                      />
+                      {labelFor(eventType)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-4 border-t border-border pt-4">
+                <label className="flex items-center gap-2 text-sm text-text-primary">
+                  <input
+                    type="checkbox"
+                    checked={preferences.email_digest_enabled}
+                    onChange={() =>
+                      setPreferences({
+                        ...preferences,
+                        email_digest_enabled: !preferences.email_digest_enabled,
+                      })
+                    }
+                    className="rounded border-border accent-accent"
+                  />
+                  Enable email digest
+                </label>
+              </div>
+
+              {preferences.email_digest_enabled && (
+                <div className="mb-4">
+                  <label className="mb-1 block text-sm text-text-secondary">
+                    Digest frequency
+                  </label>
+                  <select
+                    value={preferences.email_digest_frequency}
+                    onChange={(e) =>
+                      setPreferences({
+                        ...preferences,
+                        email_digest_frequency: e.target.value,
+                      })
+                    }
+                    className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                  </select>
+                </div>
+              )}
+
+              <button
+                onClick={handleSavePreferences}
+                disabled={savingPrefs}
+                className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+              >
+                {savingPrefs ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save Preferences
+              </button>
+            </div>
+          ) : null}
         </section>
       )}
     </div>

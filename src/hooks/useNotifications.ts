@@ -11,6 +11,8 @@ export interface NotificationsContextValue {
   markRead: (id: number) => Promise<void>;
   markAllRead: () => Promise<void>;
   refresh: () => Promise<void>;
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
 }
 
 export const NotificationsContext =

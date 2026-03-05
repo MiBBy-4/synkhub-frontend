@@ -1,6 +1,7 @@
 import {
   Bell,
   CheckCheck,
+  ChevronDown,
   ExternalLink,
   Eye,
   Filter,
@@ -9,8 +10,6 @@ import {
 import { useMemo, useState } from "react";
 import { useNotifications } from "../hooks/useNotifications";
 import { labelFor } from "../utils/eventLabels";
-
-const MAX_VISIBLE = 10;
 
 export function NotificationsWidget() {
   const {
@@ -22,9 +21,12 @@ export function NotificationsWidget() {
     setFilters,
     markRead,
     markAllRead,
+    hasMore,
+    loadMore,
   } = useNotifications();
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const repos = useMemo(() => {
     const set = new Set(notifications.map((n) => n.repo_full_name));
@@ -42,6 +44,15 @@ export function NotificationsWidget() {
       await markAllRead();
     } finally {
       setMarkingAllRead(false);
+    }
+  };
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    try {
+      await loadMore();
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -138,48 +149,64 @@ export function NotificationsWidget() {
       ) : notifications.length === 0 ? (
         <p className="text-sm text-text-secondary">No notifications yet.</p>
       ) : (
-        <ul className="space-y-2">
-          {notifications.slice(0, MAX_VISIBLE).map((n) => (
-            <li
-              key={n.id}
-              className={`flex items-start justify-between gap-2 rounded-lg border border-border p-3 text-sm ${n.read ? "opacity-50" : ""}`}
+        <>
+          <ul className="space-y-2">
+            {notifications.map((n) => (
+              <li
+                key={n.id}
+                className={`flex items-start justify-between gap-2 rounded-lg border border-border p-3 text-sm ${n.read ? "opacity-50" : ""}`}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-text-primary">
+                    {n.title}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-secondary">
+                    {n.repo_full_name}
+                    {n.actor_login ? ` · ${n.actor_login}` : ""}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  {!n.read && (
+                    <button
+                      onClick={() => markRead(n.id)}
+                      className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-light hover:text-text-primary"
+                      title="Mark as read"
+                      aria-label="Mark notification as read"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {n.url && (
+                    <a
+                      href={n.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-light hover:text-text-primary"
+                      title="Open on GitHub"
+                      aria-label="Open on GitHub"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+          {hasMore && (
+            <button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="mt-3 flex w-full items-center justify-center gap-1 text-xs text-text-secondary transition-colors hover:text-text-primary disabled:opacity-50"
             >
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-text-primary">
-                  {n.title}
-                </p>
-                <p className="mt-0.5 text-xs text-text-secondary">
-                  {n.repo_full_name}
-                  {n.actor_login ? ` · ${n.actor_login}` : ""}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                {!n.read && (
-                  <button
-                    onClick={() => markRead(n.id)}
-                    className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-light hover:text-text-primary"
-                    title="Mark as read"
-                    aria-label="Mark notification as read"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                  </button>
-                )}
-                {n.url && (
-                  <a
-                    href={n.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-light hover:text-text-primary"
-                    title="Open on GitHub"
-                    aria-label="Open on GitHub"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+              {loadingMore ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
+              Load more
+            </button>
+          )}
+        </>
       )}
     </div>
   );
