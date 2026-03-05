@@ -1,4 +1,5 @@
-import { LayoutDashboard, LogOut } from "lucide-react";
+import { LayoutDashboard, LogOut, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 export function Header() {
@@ -13,6 +14,13 @@ export function Header() {
         {user && (
           <div className="ml-auto flex items-center gap-3">
             <span className="text-sm text-text-secondary">{user.email}</span>
+            <Link
+              to="/settings"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-surface-light hover:text-text-primary"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Link>
             <button
               onClick={logout}
               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-surface-light hover:text-text-primary"
