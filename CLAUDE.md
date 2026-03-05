@@ -57,6 +57,10 @@ src/
   widgets/      # Dashboard widget components
 ```
 
+## Architecture Reference
+
+For a detailed file map, routing, state management, and widget patterns, see `docs/architecture.md`.
+
 ## Conventions
 
 - Follow the design system defined in `docs/design-patterns/design-system.md`.

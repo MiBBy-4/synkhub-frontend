@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import * as githubApi from "../api/github";
 import { useAuth } from "../hooks/useAuth";
@@ -7,6 +7,7 @@ export function GitHubCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
+  const calledRef = useRef(false);
 
   const code = useMemo(() => searchParams.get("code"), [searchParams]);
   const state = useMemo(() => searchParams.get("state"), [searchParams]);
@@ -21,25 +22,20 @@ export function GitHubCallbackPage() {
       return;
     }
 
-    let cancelled = false;
+    if (calledRef.current) {
+      return;
+    }
+    calledRef.current = true;
 
     githubApi
       .postGitHubCallback({ code, state })
       .then(() => refreshUser())
       .then(() => {
-        if (!cancelled) {
-          navigate("/settings", { replace: true });
-        }
+        navigate("/settings", { replace: true });
       })
       .catch(() => {
-        if (!cancelled) {
-          setError("Failed to connect GitHub account.");
-        }
+        setError("Failed to connect GitHub account.");
       });
-
-    return () => {
-      cancelled = true;
-    };
   }, [code, state, navigate, refreshUser]);
 
   if (error) {
