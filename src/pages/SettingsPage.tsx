@@ -1,6 +1,7 @@
 import {
   Bell,
   BookMarked,
+  Calendar,
   ChevronDown,
   Github,
   Loader2,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import * as githubApi from "../api/github";
+import * as googleCalendarApi from "../api/googleCalendar";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
 import type {
@@ -41,6 +43,10 @@ export function SettingsPage() {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [isGoogleConnecting, setIsGoogleConnecting] = useState(false);
+  const [isGoogleDisconnecting, setIsGoogleDisconnecting] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const [repos, setRepos] = useState<GitHubRepository[]>([]);
   const [subscriptions, setSubscriptions] = useState<GitHubSubscription[]>([]);
@@ -133,6 +139,33 @@ export function SettingsPage() {
       addToast("error", "Failed to disconnect GitHub.");
     } finally {
       setIsDisconnecting(false);
+    }
+  };
+
+  const handleGoogleConnect = async () => {
+    setGoogleError(null);
+    setIsGoogleConnecting(true);
+    try {
+      const { url } = await googleCalendarApi.getGoogleCalendarAuthUrl();
+      window.location.href = url;
+    } catch {
+      setGoogleError("Failed to start Google Calendar connection.");
+      setIsGoogleConnecting(false);
+    }
+  };
+
+  const handleGoogleDisconnect = async () => {
+    setGoogleError(null);
+    setIsGoogleDisconnecting(true);
+    try {
+      await googleCalendarApi.disconnectGoogleCalendar();
+      await refreshUser();
+      addToast("success", "Google Calendar disconnected.");
+    } catch {
+      setGoogleError("Failed to disconnect Google Calendar.");
+      addToast("error", "Failed to disconnect Google Calendar.");
+    } finally {
+      setIsGoogleDisconnecting(false);
     }
   };
 
@@ -240,6 +273,46 @@ export function SettingsPage() {
           </div>
 
           {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+        </div>
+
+        <div className="mt-3 rounded-xl border border-border bg-surface p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-6 w-6 text-text-secondary" />
+              <div>
+                <p className="font-medium text-text-primary">Google Calendar</p>
+                <p className="text-sm text-text-secondary">
+                  {user?.google_calendar_connected
+                    ? `Connected as ${user.google_email}`
+                    : "Not connected"}
+                </p>
+              </div>
+            </div>
+
+            {user?.google_calendar_connected ? (
+              <button
+                onClick={handleGoogleDisconnect}
+                disabled={isGoogleDisconnecting}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-surface-light hover:text-text-primary disabled:opacity-50"
+              >
+                <Unplug className="h-4 w-4" />
+                {isGoogleDisconnecting ? "Disconnecting…" : "Disconnect"}
+              </button>
+            ) : (
+              <button
+                onClick={handleGoogleConnect}
+                disabled={isGoogleConnecting}
+                className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+              >
+                <Calendar className="h-4 w-4" />
+                {isGoogleConnecting ? "Connecting…" : "Connect"}
+              </button>
+            )}
+          </div>
+
+          {googleError && (
+            <p className="mt-3 text-sm text-danger">{googleError}</p>
+          )}
         </div>
       </section>
 

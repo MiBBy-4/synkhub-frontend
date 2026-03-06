@@ -7,6 +7,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RootLayout } from "./layouts/RootLayout";
 import { Dashboard } from "./pages/Dashboard";
 import { GitHubCallbackPage } from "./pages/GitHubCallbackPage";
+import { GoogleCalendarCallbackPage } from "./pages/GoogleCalendarCallbackPage";
 import { LoginPage } from "./pages/LoginPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SignupPage } from "./pages/SignupPage";
@@ -59,6 +60,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <GitHubCallbackPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/google-calendar/callback"
+                element={
+                  <ProtectedRoute>
+                    <GoogleCalendarCallbackPage />
                   </ProtectedRoute>
                 }
               />

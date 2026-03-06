@@ -3,6 +3,8 @@ export interface User {
   email: string;
   github_username: string | null;
   github_connected: boolean;
+  google_email: string | null;
+  google_calendar_connected: boolean;
 }
 
 export interface AuthenticatedUser extends User {

@@ -9,7 +9,7 @@
 | `src/main.tsx` | React mount, StrictMode |
 | `src/App.tsx` | Router + provider tree: `AuthProvider → ToastProvider → NotificationsProvider → Routes` |
 
-### Pages (5)
+### Pages (6)
 
 | File | Route | Guard | Layout |
 |------|-------|-------|--------|
@@ -18,6 +18,7 @@
 | `src/pages/Dashboard.tsx` | `/` | ProtectedRoute | RootLayout |
 | `src/pages/SettingsPage.tsx` | `/settings` | ProtectedRoute | RootLayout (includes notification preferences) |
 | `src/pages/GitHubCallbackPage.tsx` | `/github/callback` | ProtectedRoute | none |
+| `src/pages/GoogleCalendarCallbackPage.tsx` | `/google-calendar/callback` | ProtectedRoute | none |
 
 ### Widgets (dashboard)
 
@@ -59,12 +60,13 @@
 | `src/api/client.ts` | Generic `get/post/patch/del` with Bearer auth and query params, `ApiError` class |
 | `src/api/auth.ts` | `login`, `signup`, `getMe` |
 | `src/api/github.ts` | OAuth flow, repositories, subscriptions CRUD, notifications CRUD (with filters), stats, commits, user preferences |
+| `src/api/googleCalendar.ts` | Google Calendar OAuth flow (auth URL, callback, disconnect) |
 
 ### Types
 
 | File | Exports |
 |------|---------|
-| `src/types/api.ts` | `User`, `AuthenticatedUser`, `GitHubRepository`, `GitHubSubscription`, `GitHubNotification`, `NotificationFilters`, `GitHubStats`, `GitHubCommit`, `PaginationMeta`, `PaginatedResponse`, `UserPreferences`, API response wrappers |
+| `src/types/api.ts` | `User` (with `google_email`, `google_calendar_connected`), `AuthenticatedUser`, `GitHubRepository`, `GitHubSubscription`, `GitHubNotification`, `NotificationFilters`, `GitHubStats`, `GitHubCommit`, `PaginationMeta`, `PaginatedResponse`, `UserPreferences`, API response wrappers |
 | `src/types/auth.ts` | `LoginCredentials`, `SignupCredentials` |
 | `src/types/toast.ts` | `ToastType`, `Toast` |
 
@@ -104,7 +106,8 @@ BrowserRouter
 ├─ /signup             GuestRoute     → SignupPage
 ├─ /                   ProtectedRoute → RootLayout → Dashboard
 ├─ /settings           ProtectedRoute → RootLayout → SettingsPage
-└─ /github/callback    ProtectedRoute → GitHubCallbackPage
+├─ /github/callback    ProtectedRoute → GitHubCallbackPage
+└─ /google-calendar/callback  ProtectedRoute → GoogleCalendarCallbackPage
 ```
 
 ## Widget Pattern
